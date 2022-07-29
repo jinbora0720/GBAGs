@@ -1,0 +1,321 @@
+---
+title: "G-BAGs example"
+author: "Bora Jin" 
+editor_options:
+  chunk_output_type: console
+output: 
+  html_document: 
+    toc: true
+    toc_float: true
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(message = FALSE, 
+                      warning = FALSE, 
+                      fig.width = 6, # width of figure
+                      fig.asp = .618, # aspect ratio of figure
+                      out.width = "80%", # width relative to text
+                      fig.align = "center" # figure alignment
+                      )
+```
+
+This document presents a simple demonstration of how to use some core functions 
+in the package `bags`. 
+
+We start with loading necessary packages: 
+
+```{r load-package}
+library(tidyverse)
+theme_set(theme_bw())
+library(bags)
+library(scico)
+```
+
+## Data generation 
+
+Let's generate random data from prior sampling of univariate Bayesian
+regression models based on G-BAGs with Gaussian errors using the function `rbag()`. 
+
+That is, we generate $y(t) = x(t)^T\beta + w(t) + \epsilon(t)$ assuming 
+$\epsilon(t) \sim N(0, \tau^2)$ and that spatiotemporal random effects $w$ follow 
+a G-BAG prior with a base covariance function 
+$$C(h,u) = \frac{\sigma^2}{(a|u|+1)}\exp\left(-\frac{c||h||}{(a|u|+1)^{\kappa/2}}\right)$$
+where $h$ is a spatial lag and $u$ is a temporal lag between two locations $t$ and $t'$.
+
+```{r rbag, fig.asp = 0.42}
+# set seed 
+seed <- 20220720
+
+# create coordinates on a grid 
+ngrid_e <- 40 # number of grid on the easting axis 
+ngrid_n <- 40 # number of grid on the northing axis 
+ngrid_t <- 3  # number of grid on the time axis
+
+grid_e <- seq(0, 1, length = ngrid_e)
+grid_n <- seq(0, 1, length = ngrid_n)
+grid_t <- seq(0, 1, length = ngrid_t)
+coords <- expand.grid(easting = grid_e, northing = grid_n, time = grid_t) %>%
+  arrange(time, easting, northing)
+n <- nrow(coords)
+
+# set the number of partitions in each coordinate axis 
+n_easting <- 25 
+n_northing <- 1 
+n_time <- 3 
+
+# set the true direction
+z_true <- rep("W", times = n_easting*n_northing*n_time)
+
+# set parameters
+a <- 1 
+c <- 7 
+kappa <- 0
+sig_sq <- 1
+tau_sq <- 0.1
+beta <- c(2, -1)
+
+# generate data 
+data <- rbag(coords = coords,
+             n_partition = c(n_easting, n_northing, n_time),
+             breaks_partition = list(breaks_easting = NULL,
+                                     breaks_northing = NULL,
+                                     breaks_time = NULL),
+             z = z_true,
+             params = list(tau_sq = tau_sq,
+                           sig_sq = sig_sq,
+                           a = a, c = c, kappa = kappa,
+                           beta = beta),
+             seed = seed)
+
+# plot latent w                
+data %>% 
+  ggplot() + 
+  geom_raster(aes(easting, northing, fill = w)) + 
+  facet_grid(~ factor(time, label = paste("Time =", sort(unique(time))))) + 
+  scale_fill_viridis_c() +
+  labs(x = "Easting", y = "Northing", title = "Latent G-BAG")
+```
+
+## Covariance 
+
+We can compute a covariance matrix from the G-BAG induced nonstationary covariance 
+function $\tilde{C}(\cdot,\cdot \mid z)$ 
+conditional on a DAG configuration $z$ using the function `Ctilde()`.
+
+```{r Ctilde, cache = TRUE, fig.asp = 0.58}
+# extract coordinate-relevant columns 
+coords_ptt <- data %>% 
+  select(-y, -w, -starts_with("X"))
+
+# compute G-BAG derived nonstationary covariance matrix 
+nonstCov <- Ctilde(coords_ptt = coords_ptt, 
+                   z = as.matrix(z_true),
+                   params = list(sig_sq = sig_sq, a = a, c = c, kappa = kappa))
+
+# compute the base stationary covariance matrix
+spatdist <- dist(coords_ptt[,c("easting", "northing")], method = "euclidean")
+timedist <- dist(coords_ptt[,c("time")], method = "manhattan")
+invaup1 <- 1/(a*as.matrix(timedist)+1)
+stCov <- sig_sq*invaup1*exp(-c*as.matrix(spatdist)*(invaup1^(kappa/2)))
+
+# plot the covariance with a randomly selected point 
+i_ref <- 500 
+coords_ptt %>%
+  mutate(Nonstationary = nonstCov[i_ref,], 
+         Stationary = stCov[i_ref,]) %>%
+  pivot_longer(cols = Nonstationary:Stationary, 
+               names_to = "cat", 
+               values_to = "cov") %>%
+  ggplot() +
+  geom_contour_filled(aes(easting, northing, z = cov)) +
+  scale_fill_scico_d(palette = "lapaz", direction = -1) +
+  geom_point(data = coords_ptt[i_ref,],
+             aes(easting, northing), size = 2, col = "red") +
+  facet_grid(cat ~ factor(time, label = paste("Time =", sort(unique(time))))) + 
+  labs(x = "Easting", y = "Northing", fill = "Covariance") 
+```
+
+The figure above visualizes the G-BAG induced nonstationary covariance (top) and
+the stationary base covariance (bottom) from the red point at (Easting = 0.286, 
+Northing = 0.5, Time = 0). 
+The true direction is set at "W". We can imagine steady winds coming from west 
+(i.e., from left to right). 
+
+Consequently, nonstationary covariance contours are horizontal ovals, not circles, 
+at time 0. In other words, covariance values stay larger moving farther away from 
+the red point on the E-W axis than any other axes at time 0. 
+Moreover, the contours in the future look like doughs rolled out with a rolling 
+pin consistently from left to right. They have larger space on the right 
+than on the left of the spatial coordinate (0.286, 0.5) at time 0.5 and at time 1. 
+This nonstationarity is reasonable because the latent directional force 
+deriving the correlations across locations is assumed to move towards the right. 
+
+## Posterior sampling 
+
+Suppose we observe only 80% of the data.
+
+```{r separate_data, fig.asp = 0.42}
+# set seed
+set.seed(seed)
+
+# assign 80% of data to train data
+coords_tr <- expand.grid(easting = grid_e, northing = grid_n) %>% 
+  slice_sample(prop = 0.8) %>% 
+  bind_cols(as.list(setNames(grid_t[1:ngrid_t], paste0("time_", 1:ngrid_t)))) %>% 
+  pivot_longer(starts_with("time_"), 
+               values_to = "time") %>% 
+  select(-name) %>% 
+  arrange(time, easting, northing)
+data_tr <- left_join(coords_tr, data, by = c("easting", "northing", "time"))
+data_tt <- anti_join(data, data_tr, by = c("easting", "northing", "time"))
+coords_tt <- data_tt[,c("easting", "northing", "time")]
+
+y_tr <- data_tr$y
+X_tr <- data_tr %>% select(starts_with("X"))
+X_tt <- data_tt %>% select(starts_with("X"))
+
+# plot observed y                
+data_tr %>% 
+  ggplot() + 
+  geom_raster(aes(easting, northing, fill = y)) + 
+  facet_grid(~ factor(time, label = paste("Time =", sort(unique(time))))) + 
+  scale_fill_viridis_c() +
+  labs(x = "Easting", y = "Northing", title = "Observed y")
+```
+
+With the train data above, we run posterior sampling of the Bayesian regression 
+and make predictions at the test data using the function `bag()`. 
+
+Users can specify hyperparameters in prior distributions. 
+For temporal and spatial decay, for instance, we assign `la` $= 0$, `ua` $= 2$, 
+`lc` $= 6$, and `uc` $= 8$, assuming $a \sim Unif(0, 2)$ and $c \sim Unif(6, 8)$. 
+
+```{r bag, cache = TRUE}
+# set directions 
+directions <- c("W", "NW", "N")
+
+# set mcmc 
+mcmc <- list(save = 1000, burn = 1000, thin = 2) 
+
+# run bag sampler
+out <- bag(y = y_tr, 
+           X = as.matrix(X_tr),
+           coords = as.matrix(coords_tr),
+           X_pred = as.matrix(X_tt),
+           coords_pred = as.matrix(coords_tt),
+           n_partition = c(n_easting, n_northing, n_time),
+           breaks_partition = list(breaks_easting = NULL,
+                                   breaks_northing = NULL,
+                                   breaks_time = NULL),
+           directions = directions,
+           init = list(tau_sq = NULL,
+                       sig_sq = NULL,
+                       w = NULL,
+                       z = NULL,
+                       psi = NULL,
+                       Sn = NULL),
+           hyper = list(at = NULL, bt = NULL,
+                        as = NULL, bs = NULL,
+                        la = 0, ua = 2,
+                        lc = 6, uc = 8,
+                        mu0 = NULL, invV0 = NULL),
+           mcmc = mcmc,
+           n_threads = 10,
+           seed = seed,
+           verbose = FALSE,
+           save_data = TRUE,
+           save_est = TRUE,
+           debug = list(psi_fixed = FALSE, z_fixed = FALSE))
+```
+
+## Inferences 
+
+After running the function `bag()`, we can analyze posterior samples of the 
+parameters, recover the latent process $w$, and 
+visualize prediction of $y(t)$ at missing locations. 
+
+```{r param, results = 'hide'}
+# tau_sq = 0.1
+mean(out$tau_sq_save) %>% round(3)
+## 0.102
+
+# beta = c(2, -1)
+rowMeans(out$beta_save) %>% round(3)
+## 2.021, -1.121
+
+# sig_sq = 1
+mean(out$sig_sq_save) %>% round(3)
+## 0.945
+
+# psi = c(a, c, kappa) = c(1, 7, 0)
+rowMeans(out$psi_save) %>% round(3)
+## 0.970, 7.327, 0.339
+
+# w 
+w_bag <- c(rowMeans(out$w_save), # estimated
+           rowMeans(out$w_pred_save)) # predicted 
+
+# y 
+y_bag <- c(rowMeans(out$y_save), # estimated
+           rowMeans(out$y_pred_save)) # predicted 
+```
+
+
+```{r w_y_space, fig.asp = 0.42}
+# plot predicted space by G-BAG
+bind_rows(coords_tr, coords_tt) %>% 
+  mutate(y = y_bag) %>% 
+  ggplot() + 
+  geom_raster(aes(easting, northing, fill = y)) + 
+  facet_grid( ~ factor(time, label = paste("Time =", sort(unique(time))))) + 
+  scale_fill_viridis_c() +
+  labs(x = "Easting", y = "Northing", title = "G-BAG: Posterior mean")
+```
+
+Furthermore, we can examine inferred directions.
+
+```{r direction, fig.asp = 0.53}
+# compute posterior probability of choosing each direction at each partition
+dir_prop <- data.frame(
+  W = rowMeans(out$z_save == "W"),
+  NW = rowMeans(out$z_save == "NW"),
+  N = rowMeans(out$z_save == "N")
+)
+
+# derive the highest posterior probability and associated direction
+dir_hpp <- apply(dir_prop, 1, function(x) directions[which.max(x)])
+val_hpp <- apply(dir_prop, 1, max)
+
+# compute the center of each partition for regularly spaced partitions
+easting_cut <- seq(0, 1, length = n_easting + 1)
+northing_cut <- seq(0, 1, length = n_northing + 1)
+easting_midval <- 0.5*easting_cut[1:n_easting] + 0.5*easting_cut[-1]
+northing_midval <- 0.5*northing_cut[1:n_northing] + 0.5*northing_cut[-1]
+
+# create a data frame that links derived directions and partition centers
+bag_dir <- data.frame(partition = sort(unique(data_tr$partition)),
+                      direction = factor(z_true, levels = directions),
+                      dir_hpp = factor(dir_hpp, levels = directions),
+                      val_hpp = val_hpp) %>%
+  separate(partition, c("row", "col", "time_d"), sep = ",", convert = TRUE) %>%
+  mutate(easting_center = easting_midval[col],
+         northing_center = northing_midval[n_northing + 1 - row],
+         time = grid_t[time_d])
+
+# visualize inferred directions
+bag_dir %>% ggplot() +
+  geom_tile(aes(x = easting_center, y = northing_center,
+                fill = dir_hpp, alpha = val_hpp)) +
+  labs(x = "Easting", y = "Northing", 
+       alpha = "Posterior probability", fill = "Direction", 
+       title = "G-BAG: Inferred directions") +
+  scale_alpha(range = c(0.2, 1)) +
+  facet_wrap(~ factor(time, label = paste("Time =", sort(unique(time))))) +
+  scale_fill_scico_d(palette = "bamako", 
+                     begin = 0.2, end = 0.8) +
+  theme(legend.position = "bottom")
+```
+
+We conclude the true direction "W" is well recovered by G-BAG
+with properly high posterior probabilities. Partitions which miss the true 
+direction tend to be less opaque, implying the associated uncertainty is higher. 

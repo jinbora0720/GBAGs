@@ -1,0 +1,23 @@
+---
+title: "README"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Work flow to reproduce manuscript results 
+
+* Manuscript available at https://doi.org/10.48550/arXiv.2112.11870.
+* Section "Nonstationarity of G-BAGs"
+  - /cov/bag_cov_behavior.R
+* Section "Fitted G-BAG is correctly specified"
+  - /sim1/sim1_result.R
+* Section "Fitted G-BAG is misspecified"
+  - /sim2/sim2_result.R
+* Section "California, the United States"
+  - /application/CA_daily.R
+* Section "Air Quality Data Analysis in South Korea"
+  - /application/KR_hourly.R
+
