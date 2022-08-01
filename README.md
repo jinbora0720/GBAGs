@@ -1,6 +1,3 @@
-README
-================
-
 # Work flow to reproduce manuscript results
 
 -   Manuscript available at <https://doi.org/10.48550/arXiv.2112.11870>.
