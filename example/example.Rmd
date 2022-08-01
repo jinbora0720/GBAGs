@@ -98,9 +98,10 @@ data %>%
 
 ## Covariance 
 
-We can compute a covariance matrix from the G-BAG induced nonstationary covariance 
-function $\tilde{C}(\cdot,\cdot \mid z)$ 
-conditional on a DAG configuration $z$ using the function `Ctilde()`.
+Following notations of the manuscript, we can compute $\tilde{C}_{z}$ 
+using the function `Ctilde()`. $\tilde{C}_{z}$ is the G-BAG induced nonstationary 
+covariance matrix of a reference set $S$ conditional on a DAG configuration $z$, 
+i.e., $\tilde{p}(w_S \mid z) = N(0, \tilde{C}_z)$.
 
 ```{r Ctilde, cache = TRUE, fig.asp = 0.58}
 # extract coordinate-relevant columns 
@@ -136,8 +137,8 @@ coords_ptt %>%
 ```
 
 The figure above visualizes the G-BAG induced nonstationary covariance (top) and
-the stationary base covariance (bottom) from the red point at (Easting = 0.286, 
-Northing = 0.5, Time = 0). 
+the stationary base covariance (bottom) between the red point at (Easting = 0.286, 
+Northing = 0.5, Time = 0) and other reference locations.
 The true direction is set at "W". We can imagine steady winds coming from west 
 (i.e., from left to right). 
 
