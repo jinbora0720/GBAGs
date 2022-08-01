@@ -3,7 +3,7 @@
 # original scale                                  #
 ###################################################
 # Air Quality Analysis in South Korea #
-# Table S1, Figure S2.
+# 1 Table, 2 Figure.
 rm(list = ls())
 
 # dependencies
@@ -256,9 +256,9 @@ mgpres <- readRDS(paste0(path, "application/KR_hourly_mgp.RDS"))
 # time per iteration in seconds
 bagres$est_time_per_iter + bagres$pred_time_per_iter
 
-############
-# Table S2 #
-############
+#########
+# Table #
+#########
 # parameter estimation
 ## tausq
 mean(bagres$tau_sq_save) %>% round(3)
@@ -312,9 +312,9 @@ res[n_tr+1:n_tt,] %>%
             mgp_meanwidth = mean(mgp_CIwidth)) %>%
   round(3)
 
-#############
-# Figure S3 #
-#############
+######################
+# Predicted surfaces #
+######################
 # infer wind direction
 z_postm <- apply(bagres$z_save, 1, getmode)
 dir_mean <- data.frame(

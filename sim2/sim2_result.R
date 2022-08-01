@@ -1,5 +1,5 @@
 # Fitted G-BAG is misspecified #
-# Figure 5, Figure 6, Figure S1.
+# 3 Figures
 rm(list = ls())
 
 # dependencies
@@ -37,10 +37,10 @@ inlares <- inlares1
 # mgp <- mgp2
 # inlares <- inlares2
 
-#########
-# Plots #
-#########
-# 1. examples of true surface
+#####
+# w #
+#####
+# examples of true surface
 n_time0 <- 59
 tgrid0 <- seq(0, 1, length = n_time0)
 
@@ -80,7 +80,9 @@ g <- gridExtra::grid.arrange(plot1, plot2, ncol = 1)
 #          width = 10, height = 4.5)
 # }
 
-# 2. wind direction
+##############
+# Directions #
+##############
 ## directions
 directions <- c("NW", "N", "NE", "E")
 
@@ -191,7 +193,9 @@ gg <- gridExtra::grid.arrange(fig2, fig1, nrow = 1)
 #          width = 11, height = 4)
 # }
 
-# 3. prediction results in figure
+################################
+# Prediction results in figure #
+################################
 res <- data.frame(vals = c(bag$rmspe, mgp$rmspe,
                            inlares$rmspe, inlares$rmspe_ns,
                            bag$mape, mgp$mape,

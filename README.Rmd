@@ -16,8 +16,6 @@ knitr::opts_chunk$set(echo = TRUE)
   - /sim1/sim1_result.R
 * Section "Fitted G-BAG is misspecified"
   - /sim2/sim2_result.R
-* Section "California, the United States"
+* Section "Air Quality Data Analysis in California, the United States"
   - /application/CA_daily.R
-* Section "Air Quality Data Analysis in South Korea"
-  - /application/KR_hourly.R
 

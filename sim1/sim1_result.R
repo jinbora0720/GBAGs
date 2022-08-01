@@ -1,5 +1,5 @@
 # Fitted G-BAG is correctly specified #
-# Table 1, Table S1, Figure 4
+# 2 Tables, 3 Figures
 rm(list = ls())
 
 # dependencies
@@ -90,9 +90,9 @@ rownames(citab) <- c("beta", "tausq", "sigsq", "a", "c", "kappa")
 colnames(citab) <- c("G-BAG", "Q-MGP", "SPDE-stationary", "SPDE-nonstationary")
 citab %>% round(3)
 
-############
-# Figure 4 #
-############
+###############
+# Directions  #
+###############
 ## directions
 directions <- c("W", "NW", "N", "NE")
 

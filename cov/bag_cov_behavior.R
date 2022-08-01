@@ -1,5 +1,5 @@
 # Nonstationarity of G-BAGs #
-# Figure 3.
+# 1 Figure 
 rm(list = ls())
 
 # dependencies
@@ -131,9 +131,9 @@ invaup1 <- 1/(a*as.matrix(timedist)+1)
 stCor <- invaup1*exp(-c*as.matrix(spatdist)*(invaup1^(kappa/2)))
 stCov <- sig_sq*stCor
 
-########
-# plot #
-########
+#############
+# Subfigure #
+#############
 dataall <- data.frame(easting = rep(coords_ptt$easting, 3),
                       northing = rep(coords_ptt$northing, 3),
                       time = rep(coords_ptt$time, 3),
@@ -259,9 +259,9 @@ invaup13 <- 1/(a*as.matrix(timedist3)+1)
 stCor3 <- invaup13*exp(-c*as.matrix(spatdist3)*(invaup13^(kappa/2)))
 stCov3 <- sig_sq*stCor3
 
-########
-# plot #
-########
+#############
+# Subfigure #
+#############
 i_ref <- 95
 Eidx_ref <- (i_ref - ngrid3) + (-n_time3:n_time3)*ngrid3^2
 Eidx_ref <- Eidx_ref[Eidx_ref < n3 & Eidx_ref > 0]

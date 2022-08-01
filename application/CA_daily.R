@@ -1,5 +1,5 @@
 # Air Quality Analysis in CA #
-# Table 2, Figure 7-9, Figure S3-S4.
+# 1 Table, 6 Figures
 rm(list = ls())
 
 # dependencies
@@ -359,9 +359,9 @@ inlares <- readRDS(paste0(path, "application/CA_daily_inla.RDS"))
 bagres$est_time_per_iter
 bagres$pred_time_per_iter
 
-###########
-# Table 2 #
-###########
+#########
+# Table #
+#########
 # parameter estimation
 ## beta
 rowMeans(bagres$beta_save) %>% round(3)
@@ -444,9 +444,9 @@ colnames(ressum_tab) <- c("G-BAG", "Q-MGP", "SPDE-nonstationary")
 rownames(ressum_tab) <- c("RMSPE", "MAPE", "95% CI coverage", "Mean 95% CI width")
 ressum_tab %>% round(3)
 
-#############
-# Figure S4 #
-#############
+######################
+# Prediction by time #
+######################
 ## prediction metric by time
 res_bytime <- res[n_tr+1:n_tt,] %>%
   group_by(time) %>%
@@ -512,7 +512,7 @@ g <- res_bytime2 %>% ggplot() +
 # }
 
 #############
-# Figure S3 #
+# Residuals #
 #############
 # examine residual plots y-w
 ybar <- mean(y_tr)
@@ -607,9 +607,9 @@ fig <- gridExtra::grid.arrange(fig3, fig2, fig1, ncol = 1)
 #          width = 7, height = 8)
 # }
 
-############
-# Figure 7 #
-############
+######################
+# Predicted surfaces #
+######################
 # infer wind direction
 z_postm <- apply(bagres$z_save, 1, getmode)
 dir_mean <- data.frame(
@@ -748,9 +748,9 @@ gg <- ggpubr::ggarrange(plt_obs,
 #          width = 9, height = 7)
 # }
 
-############
-# Figure 8 #
-############
+###############
+# Uncertainty #
+###############
 plotCI <- plt_res4 %>%
   filter(date == "2020-09-13") %>%
   ggplot() +
@@ -765,9 +765,9 @@ plotCI <- plt_res4 %>%
 #          width = 5, height = 4)
 # }
 
-############
-# Figure 9 #
-############
+##################
+# August Complex #
+##################
 # August Complex
 ttselect <- c(17, 18, 20, 22)
 plt_res6 <- plt_res[(n_tr + n_tt) + 1:n_grid,] %>%
