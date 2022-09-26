@@ -1,4 +1,4 @@
-README
+Bag of DAGs
 ================
 
 # Work flow to reproduce manuscript results
