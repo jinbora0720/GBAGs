@@ -40,25 +40,25 @@ for (i in 1:length(p)) {
 }
 
 g0 <- data.frame(h = rep(basedata$h, times = length(p)), 
-           u = rep(basedata$u, times = length(p)), 
-           p = rep(paste0("p = ", p), each = N^2), 
-           nonstCov12 = as.numeric(Ctilde12), 
-           nonstCov13 = as.numeric(Ctilde13)) %>% 
+                 u = rep(basedata$u, times = length(p)), 
+                 pi = rep(paste("pi", "==", p), each = N^2), 
+                 nonstCov12 = as.numeric(Ctilde12), 
+                 nonstCov13 = as.numeric(Ctilde13)) %>% 
   pivot_longer(c("nonstCov12", "nonstCov13"), 
                names_to = "what", values_to = "Cov") %>% 
-  filter(p %in% paste0("p = ", c(0.51, 0.55, 0.7))) %>% 
+  filter(pi %in% paste("pi", "==", c(0.51, 0.55, 0.7))) %>% 
   ggplot() + 
-  facet_wrap(~p, ncol = 3) + 
+  facet_wrap(~ pi, ncol = 3, labeller = labeller(pi = label_parsed)) + 
   geom_contour(aes(x = h, y = u, z = Cov, color = what, linetype = what), 
                breaks = 0.1) +
   scale_color_manual(values = c("nonstCov12" = "#E69F00", 
                                 "nonstCov13" = "#009E73"), 
-                     labels = c(expression(paste(s[1],"&",s[2])), 
-                                expression(paste(s[1],"&",s[3])))) +
+                     labels = c(expression(paste(s[1]," & ",s[2])), 
+                                expression(paste(s[1]," & ",s[3])))) +
   scale_linetype_manual(values = c("nonstCov12" = 1, 
                                    "nonstCov13" = 2), 
-                        labels = c(expression(paste(s[1],"&",s[2])), 
-                                   expression(paste(s[1],"&",s[3])))) + 
+                        labels = c(expression(paste(s[1]," & ",s[2])), 
+                                   expression(paste(s[1]," & ",s[3])))) + 
   labs(x = "||h||", y = "|u|", 
        title = "G-BAG induced covariance: nonstationarity", 
        color = "", linetype = "") +

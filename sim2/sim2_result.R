@@ -202,17 +202,20 @@ res <- data.frame(vals = c(bag$rmspe, mgp$rmspe,
                            inlares$mape, inlares$mape_ns,
                            bag$coverage, mgp$coverage,
                            inlares$coverage, inlares$coverage_ns),
-                   model = rep(rep(c("G-BAG", "Q-MGP",
+                   model = rep(rep(c("G-BAG", "Fixed DAG",
                                      "SPDE-stationary", "SPDE-nonstationary"),
                                    each = 25), 3),
-                   what = rep(c("RMSPE", "MAPE", "95% CI coverage"), each = 100))
+                   what = rep(c("RMSPE", "MAPE", "95% CI coverage"), each = 100)) %>% 
+  mutate(model = fct_relevel(model, c("G-BAG", "Fixed DAG",
+                                      "SPDE-stationary", "SPDE-nonstationary")))
 
 ggg <- res %>% ggplot() +
   geom_boxplot(aes(model, vals, fill = model), col = "black") +
   facet_wrap(~factor(what, levels = c("RMSPE", "MAPE", "95% CI coverage")),
              scales="free") +
   labs(x = "", y = "", fill = "") +
-  scale_fill_manual(values = c("G-BAG" = "#1400FFFF", "Q-MGP" = "#C729D6FF",
+  scale_fill_manual(values = c("G-BAG" = "#1400FFFF", 
+                               "Fixed DAG" = "#C729D6FF",
                                "SPDE-nonstationary" = "#FF9C63FF",
                                "SPDE-stationary" = "#FFFF60FF")) +
   theme(axis.text.x = element_blank(),
@@ -220,10 +223,10 @@ ggg <- res %>% ggplot() +
         legend.position = "bottom",
         plot.margin = margin(t = 1, l = -5, r = 1, b = 0),
         legend.margin = margin(b = 0, r = 0, t = -10, l = 0))
-# for (ext in extension) {
-#   ggsave(plot = ggg, paste0(path, "plots/sim2a_pred", ext),
-#          width = 9, height = 2.7)
-# }
+for (ext in extension) {
+  ggsave(plot = ggg, paste0(path, "plots/sim2a_pred", ext),
+         width = 9, height = 2.7)
+}
 
 #################################
 # Prediction results in numbers #
@@ -259,3 +262,4 @@ summary(unlist(bag2$y_pred_ess))
 mean(bag$est_time_per_iter[3,] + bag$pred_time_per_iter[3,])
 mean(bag$est_time_per_iter[3,])
 mean(bag$pred_time_per_iter[3,])
+

@@ -55,7 +55,7 @@ mtab <-
               sapply(inlares[c("rmspe", "mape", "coverage", "meanwidth")], mean),
               sapply(inlares[c("rmspe_ns", "mape_ns", "coverage_ns", "meanwidth_ns")], mean)))
 rownames(mtab)[c(1:6)] <- c("beta", "tausq", "sigsq", "a", "c", "kappa")
-colnames(mtab) <- c("G-BAG", "Q-MGP", "SPDE-stationary", "SPDE-nonstationary")
+colnames(mtab) <- c("G-BAG", "Fixed-DAG", "SPDE-stationary", "SPDE-nonstationary")
 mtab %>% round(3)
 
 # sd
@@ -73,7 +73,7 @@ sdtab <-
               sapply(inlares[c("rmspe", "mape", "coverage", "meanwidth")], sd),
               sapply(inlares[c("rmspe_ns", "mape_ns", "coverage_ns", "meanwidth_ns")], sd)))
 rownames(sdtab)[c(1:6)] <- c("beta", "tausq", "sigsq", "a", "c", "kappa")
-colnames(sdtab) <- c("G-BAG", "Q-MGP", "SPDE-stationary", "SPDE-nonstationary")
+colnames(sdtab) <- c("G-BAG", "Fixed DAG", "SPDE-stationary", "SPDE-nonstationary")
 sdtab %>% round(3)
 
 # 95% ci
@@ -87,7 +87,7 @@ citab <-
               rep(NA, 3),
               rep(NA, 3)))
 rownames(citab) <- c("beta", "tausq", "sigsq", "a", "c", "kappa")
-colnames(citab) <- c("G-BAG", "Q-MGP", "SPDE-stationary", "SPDE-nonstationary")
+colnames(citab) <- c("G-BAG", "Fixed DAG", "SPDE-stationary", "SPDE-nonstationary")
 citab %>% round(3)
 
 ###############
@@ -203,7 +203,7 @@ mean(sapply(bag2$z_pvalue, function(x) mean(x < 0.05)))
 
 # effective sample size
 ## predicted y
-summary(unlist(bag1$y_pred_ess))
+summary(unlist(bag1$y_pred_ess)) %>% round(3)
 summary(unlist(bag2$y_pred_ess))
 
 ## parameters
@@ -216,22 +216,23 @@ colnames(esstab) <- c("ESS - theta1", "ESS - theta2")
 esstab %>% round(3)
 
 # trace plots and running mean
-convp <- data.frame(y = c(cumsum(bag1$out$y_pred_save[1,])/1:mcmc$save,
+convp <- data.frame(y = c(cumsum(bag2$out$y_pred_save[1,])/1:mcmc$save,
                           bag2$out$y_pred_save[1,]),
-                    tau_sq = c(cumsum(bag1$out$tau_sq_save)/1:mcmc$save,
+                    tau_sq = c(cumsum(bag2$out$tau_sq_save)/1:mcmc$save,
                                bag2$out$tau_sq_save),
-                    beta = c(cumsum(bag1$out$beta_save[1,])/1:mcmc$save,
+                    beta = c(cumsum(bag2$out$beta_save[1,])/1:mcmc$save,
                              bag2$out$beta_save[1,]),
-                    theta = rep(c("theta1", "theta2"), each = mcmc$save),
+                    theta = rep(c("Running-mean", "Trace"), each = mcmc$save),
                     iter = rep(1:mcmc$save, 2)) %>%
   pivot_longer(-c(theta, iter), values_to = "draw", names_to = "param") %>%
   ggplot() +
   geom_line(aes(iter, draw)) +
   facet_grid(factor(param, labels = c(bquote(beta), bquote(tau^2), "y(t)")) ~
-               factor(theta, labels = c(bquote(theta[1]), bquote(theta[2]))),
+               theta,
              scales = "free_y", labeller = label_parsed) +
   labs(x = "", y = "") +
-  theme(plot.margin = margin(t = 0, l = -5, r = 0, b = -5))
+  theme(plot.margin = margin(t = 5, l = -5, r = 0, b = -5), 
+        strip.text.x = element_blank())
 # for (ext in extension) {
 #   ggsave(plot = convp, paste0(path, "plots/sim1_convergence", ext),
 #          width = 8, height = 4)

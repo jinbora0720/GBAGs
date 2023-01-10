@@ -440,7 +440,7 @@ ressum <- res[n_tr+1:n_tt,] %>%
             inla_meanwidth = mean(inla_CIwidth))
 
 ressum_tab <- ressum %>% as.numeric() %>% matrix(., nrow = 4, ncol = 3, byrow = T)
-colnames(ressum_tab) <- c("G-BAG", "Q-MGP", "SPDE-nonstationary")
+colnames(ressum_tab) <- c("G-BAG", "Fixed DAG", "SPDE-nonstationary")
 rownames(ressum_tab) <- c("RMSPE", "MAPE", "95% CI coverage", "Mean 95% CI width")
 ressum_tab %>% round(3)
 
@@ -493,16 +493,17 @@ res_bytime2 <-
                       res_bytime$bag_coverage,
                       res_bytime$mgp_coverage,
                       res_bytime$inla_coverage),
-             model = rep(rep(c("G-BAG", "Q-MGP", "SPDE-nonstationary"),
+             model = rep(rep(c("G-BAG", "Fixed DAG", "SPDE-nonstationary"),
                              each = n_time), 3),
-             what = rep(c("RMSPE", "MAPE", "95% CI coverage"), each = 3*n_time))
+             what = rep(c("RMSPE", "MAPE", "95% CI coverage"), each = 3*n_time)) %>% 
+  mutate(model = fct_relevel(model, c("G-BAG", "Fixed DAG", "SPDE-nonstationary")))
 
 g <- res_bytime2 %>% ggplot() +
   geom_line(aes(date, vals, col = model, linetype = model), size = 0.8) +
   facet_grid(factor(what, levels = c("MAPE", "RMSPE", "95% CI coverage"))~.,
              scales = "free") +
   labs(x = "", y = "", color = "", linetype = "") +
-  scale_color_manual(values = c("G-BAG" = "#1400FFFF", "Q-MGP" = "#C729D6FF",
+  scale_color_manual(values = c("G-BAG" = "#1400FFFF", "Fixed DAG" = "#C729D6FF",
                                 "SPDE-nonstationary" = "#FF9C63FF")) +
   theme(legend.position = "right",
         plot.margin = margin(t = 2, l = -3, r = 2, b = -9))
