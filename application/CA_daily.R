@@ -499,7 +499,7 @@ res_bytime2 <-
   mutate(model = fct_relevel(model, c("G-BAG", "Fixed DAG", "SPDE-nonstationary")))
 
 g <- res_bytime2 %>% ggplot() +
-  geom_line(aes(date, vals, col = model, linetype = model), size = 0.8) +
+  geom_line(aes(date, vals, col = model, linetype = model), linewidth = 0.8) +
   facet_grid(factor(what, levels = c("MAPE", "RMSPE", "95% CI coverage"))~.,
              scales = "free") +
   labs(x = "", y = "", color = "", linetype = "") +
@@ -632,12 +632,10 @@ ang_hpp[which(wind_hpp == "NW")] <- 7*pi/4
 ang_hpp[which(wind_hpp == "N")] <- 3*pi/2
 ang_hpp[which(wind_hpp == "NE")] <- 5*pi/4
 
-## partitions
+## winds in partitioned regions
 ptts_tr <- sort(unique(bagres$coords_ptt$partition[1:n_tr]))
 bag_wind_df <- data.frame(partition = ptts_tr,
                            partition1 = ptts_tr,
-                           wind_hpp = factor(wind_hpp,
-                                             levels = ptts_tr),
                            val_hpp = val_hpp,
                            ang_hpp = ang_hpp) %>%
   tidyr::separate(partition1,
@@ -647,6 +645,29 @@ bag_wind_df <- data.frame(partition = ptts_tr,
          time = timelist[time_d])
 
 # overlay wind directions and predicted plots
+## sanity check for left_join
+all.equal(bagres$coords_ptt[1:n_tr, "easting"], 
+          pull(coords_tr[,"easting"]))
+all.equal(bagres$coords_ptt[1:n_tr, "northing"], 
+          pull(coords_tr[,"northing"]))
+all.equal(bagres$coords_ptt[1:n_tr, "time"], 
+          pull(coords_tr[,"time"]))
+
+all.equal(bagres$coords_ptt[n_tr + 1:n_tt, "easting"], 
+          pull(coords_tt[,"easting"]))
+all.equal(bagres$coords_ptt[n_tr + 1:n_tt, "northing"], 
+          pull(coords_tt[,"northing"]))
+all.equal(bagres$coords_ptt[n_tr + 1:n_tt, "time"], 
+          pull(coords_tt[,"time"]))
+
+all.equal(bagres$coords_ptt[(n_tr + n_tt) + 1:n_grid, "easting"], 
+          coords_grid[,"easting"])
+all.equal(bagres$coords_ptt[(n_tr + n_tt) + 1:n_grid, "northing"], 
+          coords_grid[,"northing"])
+all.equal(bagres$coords_ptt[(n_tr + n_tt) + 1:n_grid, "time"], 
+          coords_grid[,"time"])
+coords_grid[,"northing"] <- bagres$coords_ptt[(n_tr + n_tt) + 1:n_grid, "northing"]
+
 plt_res <- (res %>% select(easting, northing, time,
                            y, y_bag, y_mgp, y_inla, bag_CIwidth)) %>%
   left_join(data.frame(rbind(coords_tr[,c("easting", "northing", "time",
@@ -655,12 +676,8 @@ plt_res <- (res %>% select(easting, northing, time,
                                           "time_d", "true_easting", "true_northing")],
                              coords_grid[,c("easting", "northing", "time",
                                             "time_d", "true_easting", "true_northing")])),
-            by = c("easting", "northing", "time"))
-plt_res <- plt_res %>%
-  mutate(pm_bag = ifelse(exp(y_bag) <= 12, 1,
-                          ifelse(exp(y_bag) <= 35, 2,
-                                 ifelse(exp(y_bag) <= 65, 3, 4))),
-         date = timelist[time_d])
+            by = c("easting", "northing", "time")) %>%
+  mutate(date = timelist[time_d])
 
 # Sep 13 - 18
 ttselect <- c(44:45, 47:49)
@@ -669,6 +686,8 @@ plt_res4 <- plt_res[(n_tr + n_tt) + 1:n_grid,] %>%
 plt_res4_wind <- bag_wind_df %>%
   filter(time_d %in% ttselect) %>%
   rename(date = time)
+
+## simply to make green area visible
 plt_ymin4 <- max(0,min(plt_res4$y_bag))
 plt_ymax4 <- max(plt_res4$y_bag)
 
@@ -707,7 +726,7 @@ plt_pred_dis <- plt_res4 %>%
   geom_spoke(data = plt_res4_wind,
              aes(x = easting_center, y = northing_center, angle = ang_hpp),
              color = "white",
-             radius = 40000, size = 1.5,
+             radius = 40000, linewidth = 1.5,
              arrow = arrow(length = unit(.1, 'cm'))) +
   geom_spoke(data = plt_res4_wind,
              aes(x = easting_center, y = northing_center, angle = ang_hpp),
@@ -777,40 +796,33 @@ plt_res6_wind <- bag_wind_df %>%
   filter(time_d %in% ttselect) %>%
   rename(date = time)
 
-plt_res6_both <- plt_res6 %>%
-  select(true_easting, true_northing, date, y_bag) %>%
+ggg <- plt_res6 %>% 
   mutate(z = exp(y_bag)) %>%
-  select(-y_bag) %>%
-  rbind(plt_res6 %>%
-          select(true_easting, true_northing, date, y_inla) %>%
-          mutate(z = exp(y_inla)) %>%
-          select(-y_inla)) %>%
-  mutate(model = rep(c("G-BAG", "SPDE-nonstationary"), each = nrow(plt_res6)))
-
-ggg <- plt_res6_both %>% ggplot() +
+  ggplot() +
   geom_contour_filled(aes(true_easting, true_northing, z = z),
                       breaks = c(0, 12, 35, 65, Inf)) +
   scale_fill_manual(values = c("#56B4E9", "#009E73", "#F0E442", "#D55E00"),
                     labels = c("(0,12]","(12,35]","(35,65]",">65")) +
   geom_sf(data = ca_sf, fill = "NA") +
-  geom_spoke(data = plt_res6_wind %>% mutate(model = "G-BAG"),
+  geom_spoke(data = plt_res6_wind,
             aes(x = easting_center, y = northing_center, angle = ang_hpp),
-            radius = 40000, col = "white", size = 1.5,
+            radius = 40000, col = "white", linewidth = 1.5,
             arrow = arrow(length = unit(.1, 'cm'))) +
-  geom_spoke(data = plt_res6_wind %>% mutate(model = "G-BAG"),
+  geom_spoke(data = plt_res6_wind,
              aes(x = easting_center, y = northing_center, angle = ang_hpp),
              radius = 40000,
              arrow = arrow(length = unit(.1, 'cm'))) +
-  facet_grid(model ~ date) +
+  facet_wrap(~ date, nrow = 1) +
   labs(y = "", x = "", fill = "PM2.5 (um/m3)") +
   scale_x_continuous(breaks = c(-123, -121, -119)) +
   coord_sf(xlim = c(-135000, 450000), ylim = c(4100000, 4700000), expand = FALSE) +
   theme(legend.position = "bottom",
-        legend.margin = margin(b = 0, r = 0, t = -15, l = 0))
-# for (ext in extension) {
-#   ggsave(plot = ggg, paste0(path, "plots/CA_daily_pred_AugustComplex", ext),
-#          width = 7, height = 4)
-# }
+        legend.margin = margin(b = -5, r = 0, t = -25, l = 0))
+
+for (ext in extension) {
+  ggsave(plot = ggg, paste0(path, "plots/CA_daily_pred_AugustComplex", ext),
+         width = 7, height = 2.5)
+}
 
 ###############
 # Convergence #
