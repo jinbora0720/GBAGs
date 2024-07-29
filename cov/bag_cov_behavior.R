@@ -1,5 +1,4 @@
 # Nonstationarity of G-BAGs #
-# 2 Figures
 rm(list = ls())
 
 # dependencies
@@ -7,6 +6,8 @@ library(tidyverse)
 theme_set(theme_bw())
 library(scico)
 library(bags)
+# devtools::install_github("marysalvana/Lagrangian")
+library(Lagrangian)
 
 # path
 path <- "~/GBAGs/"
@@ -60,7 +61,7 @@ g0 <- data.frame(h = rep(basedata$h, times = length(p)),
                         labels = c(expression(paste(s[1]," & ",s[2])), 
                                    expression(paste(s[1]," & ",s[3])))) + 
   labs(x = "||h||", y = "|u|", 
-       title = "G-BAG induced covariance: nonstationarity", 
+       title = "G-BAG nonstationary covariance: directional", 
        color = "", linetype = "") +
   theme(legend.position = "bottom", 
         plot.margin = margin(t = 1, l = 1, r = 8, b = -2),
@@ -71,9 +72,11 @@ g0 <- data.frame(h = rep(basedata$h, times = length(p)),
 #          width = 7, height = 2.5)
 # }
 
-########
-# Data #
-########
+################################################################################
+
+##################################
+# Different partitioning schemes #
+##################################
 # specify number of grid on each axis
 ngrid <- 30
 n_time <- 4
@@ -98,9 +101,7 @@ xytgrid <- expand.grid(easting = xgrid, northing = xgrid, time = tgrid) %>%
 n <- nrow(xytgrid)
 coords <- xytgrid
 
-#################################
-# wheel of fortune (partition1) #
-#################################
+#-- wheel of fortune (partition1) --#
 # wind directions
 n_northing <- 3
 n_easting <- 3
@@ -118,9 +119,7 @@ coords_ptt$partition <- sprintf(format,
                                 coords_ptt$col,
                                 coords_ptt$time_d)
 
-##########################
-# rectangle (partition2) #
-##########################
+#-- rectangle (partition2) --#
 # assign partitions
 easting_cut <- seq(0, 1, length = n_easting + 1)
 northing_cut <- seq(0, 1, length = n_northing + 1)
@@ -140,9 +139,7 @@ coords_ptt2$partition <- sprintf(format,
                                  coords_ptt2$col,
                                  coords_ptt2$time_d)
 
-#######
-# Cov #
-#######
+#-- Cov --#
 # true parameter values
 a <- .7 # the smaller the longer the cov lasts
 c <- .8 # the smaller the larger the cov
@@ -188,9 +185,6 @@ invaup1 <- 1/(a*as.matrix(timedist)+1)
 stCor <- invaup1*exp(-c*as.matrix(spatdist)*(invaup1^(kappa/2)))
 stCov <- sig_sq*stCor
 
-#############
-# Subfigure #
-#############
 dataall <- data.frame(easting = rep(coords_ptt$easting, 3),
                       northing = rep(coords_ptt$northing, 3),
                       time = rep(coords_ptt$time, 3),
@@ -212,7 +206,7 @@ g1 <- dataall %>%
              aes(easting, northing), size = 2, col = "red") +
   facet_grid(cat ~ timename) +
   labs(x = "", y = "", fill = "Covariance",
-       title = "G-BAG induced covariance: nonstationarity") +
+       title = "G-BAG nonstationary covariance: directional") +
   scale_x_continuous(breaks = c(0,0.5,1)) +
   scale_y_continuous(breaks = c(0,0.5,1)) +
   theme(legend.position = "bottom") +
@@ -243,7 +237,7 @@ g2 <- dataall %>%
              aes(easting, northing), size = 2, col = "red") +
   facet_grid(cat ~ timename) +
   labs(x = "", y = "", fill = "Covariance",
-       title = "Base covariance: stationarity") +
+       title = "Base covariance: symmetric") +
   scale_x_continuous(breaks = c(0,0.5,1)) +
   scale_y_continuous(breaks = c(0,0.5,1)) +
   theme(legend.position = "none")
@@ -256,11 +250,11 @@ gg <- ggpubr::ggarrange(g1, g2, nrow = 2, common.legend = T,
 # }
 ################################################################################
 
-########
-# Data #
-########
+############################################
+# Cov between left and right under W winds #
+############################################
 # specify number of grid on each axis
-ngrid3 <- 3
+ngrid3 = n_northing = n_easting <- 3
 n_time3 <- 30
 xgrid3 <- seq(0, 1, length = ngrid3)
 tgrid3 <- seq(0, 1, length = n_time3)
@@ -286,39 +280,29 @@ coords_ptt3$partition <- sprintf(format3,
                                  coords_ptt3$col,
                                  coords_ptt3$time_d)
 
-#######
-# Cov #
-#######
+#-- Cov --#
 # true parameter values
 a3 <- 2 # the smaller the longer the cov lasts
+c <- .8 # the smaller the larger the cov
+kappa <- 0
+sig_sq <- 1
 
 # wind directions
 ptts3 <- sort(unique(coords_ptt3$partition))
 z_true13 <- matrix("W", nrow = length(ptts3))
 rownames(z_true13) <- ptts3
-z_true23 <- matrix("N", nrow = length(ptts3))
-rownames(z_true23) <- ptts3
-z_true33 <- matrix("NW", nrow = length(ptts3))
-rownames(z_true33) <- ptts3
 
 # Ctilde given z
 Cz_W3 <- Ctilde(coords_ptt = coords_ptt3, z = z_true13,
                 params = list(sig_sq = sig_sq, a = a3, c = c, kappa = kappa))
-Cz_N3 <- Ctilde(coords_ptt = coords_ptt3, z = z_true23,
-                params = list(sig_sq = sig_sq, a = a3, c = c, kappa = kappa))
-Cz_NW3 <- Ctilde(coords_ptt = coords_ptt3, z = z_true33,
-                 params = list(sig_sq = sig_sq, a = a3, c = c, kappa = kappa))
 
 # stationary
 spatdist3 <- dist(coords_ptt3[,c("easting", "northing")], method = "euclidean")
 timedist3 <- dist(coords_ptt3[,c("time")], method = "manhattan")
-invaup13 <- 1/(a*as.matrix(timedist3)+1)
+invaup13 <- 1/(a3*as.matrix(timedist3)+1)
 stCor3 <- invaup13*exp(-c*as.matrix(spatdist3)*(invaup13^(kappa/2)))
 stCov3 <- sig_sq*stCor3
 
-#############
-# Subfigure #
-#############
 i_ref <- 95
 Eidx_ref <- (i_ref - ngrid3) + (-n_time3:n_time3)*ngrid3^2
 Eidx_ref <- Eidx_ref[Eidx_ref < n3 & Eidx_ref > 0]
@@ -369,15 +353,15 @@ gg2 <- cov_df %>%
   ggplot() +
   geom_rect(data = data.frame(xmin = coords_ptt3[i_ref,"time"],
                               xmax = west_max,
-                              ymin = -.1, ymax = .8),
+                              ymin = 0, ymax = .8),
             aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax),
             alpha = .2, fill = "#D55E00") +
   geom_rect(data = data.frame(xmin = east_max,
                               xmax = coords_ptt3[i_ref,"time"],
-                              ymin = -.1, ymax = .8),
+                              ymin = 0, ymax = .8),
             aes(xmin = xmin, xmax = xmax,
                 ymin = ymin, ymax = ymax), alpha = .2, fill = "#0072B2") +
-  geom_line(aes(dist, cov, col = dir, linetype = dir), size=1) +
+  geom_line(aes(dist, cov, col = dir, linetype = dir), linewidth = 1) +
   scale_color_manual(values = c("E" = "#0072B2", "W" = "#D55E00"),
                      labels = c("left", "right")) +
   scale_linetype_manual(values = c("E" = "dashed", "W" = "solid"),
@@ -388,7 +372,7 @@ gg2 <- cov_df %>%
         legend.title=element_text(size = 12),
         legend.text = element_text(size = 11)) +
   labs(x = "Time", y = "Covariance", #title = "Winds from W (left to right)",
-       title = "G-BAG induced covariance: nonstationarity",
+       title = "G-BAG nonstationary covariance: directional",
        color = "Relative location to the reference point",
        linetype = "Relative location to the reference point") +
   scale_y_continuous(expand = c(0,0)) +
@@ -403,7 +387,7 @@ gg3 <- data.frame(dist = rep(tgrid3,2),
                   cov = c(stCov3[i_ref, Eidx_ref]-0.004,
                           stCov3[i_ref, Widx_ref]+0.004)) %>%
   ggplot() +
-  geom_line(aes(dist, cov, col = dir, linetype = dir), size = 1) +
+  geom_line(aes(dist, cov, col = dir, linetype = dir), linewidth = 1) +
   scale_color_manual(values = c("E" = "#0072B2", "W" = "#D55E00"),
                      labels = c("left", "right")) +
   scale_linetype_manual(values = c("E" = "dashed", "W" = "solid"),
@@ -414,10 +398,10 @@ gg3 <- data.frame(dist = rep(tgrid3,2),
         legend.title = element_text(size = 12),
         legend.text = element_text(size = 11)) +
   labs(x = "Time", y = "Covariance", #title = "Winds from W (left to right)",
-       title = "Base covariance: stationarity",
+       title = "Base covariance: symmetric",
        color = "Relative location to the reference point",
        linetype = "Relative location to the reference point") +
-  ylim(0.15, 0.75) +
+  scale_y_continuous(expand = c(0,0), limits = c(0, 0.8)) +
   scale_x_continuous(breaks = c(0, 0.2, coords_ptt3[i_ref, "time"], 0.6, 0.8, 1),
                      labels = c(0, 0.2, "t*", 0.6, 0.8, 1))
 
@@ -431,4 +415,99 @@ ggg <- ggpubr::ggarrange(gg1,
 # for (ext in extension) {
 #   ggsave(plot = ggg, paste0(path, "plots/cov_time", ext),
 #          width = 11, height = 3)
+# }
+
+################################################################################
+
+##############
+# Lagrangian #
+##############
+# locations
+xgrid <- seq(0, 1, length = 6)
+ygrid <- xgrid
+tgrid <- seq(0, 1, length = 15)
+coords <- expand.grid(easting = xgrid, northing = ygrid, time = tgrid) %>%
+  arrange(time, easting, northing)
+n <- nrow(coords)
+
+# rotate 
+theta <- pi/4
+rot45_mat <- matrix(c(cos(theta), -sin(theta), sin(theta), cos(theta)), 
+                    2, 2, byrow = T)
+coords_45 <- data.frame(as.matrix(coords[,1:2])%*%rot45_mat, time = coords[,3]) %>%
+  rename("easting" = "X1", "northing" = "X2")
+
+# seed 
+seed <- 710
+set.seed(seed)
+
+# -- Cov --#
+# frozen Lagrangian nonstationary spatiotemporal covariance
+## spatially-varying
+cov_mat_sv <- cov_uni_lagrangian(location = coords, sigma2 = 1, scale = 1, nu = 1/2,
+                                 vx = 3.1, vy = 3.1, nonstat = 2) 
+# G-BAG
+n_easting <- 11 
+n_northing <- 1
+n_time <- 15
+
+nd <- floor(log10(max(n_easting, n_northing, n_time))) + 1
+coords_ptt <- data.frame(coords_45)
+coords_ptt$row <- (n_northing+1) -
+  as.numeric(cut_interval(coords_ptt$northing,
+                          n = n_northing,
+                          labels = 1:n_northing))                           
+coords_ptt$col <- as.numeric(cut_interval(coords_ptt$easting,
+                                          n = n_easting,
+                                          labels = 1:n_easting))
+coords_ptt$time_d <- as.numeric(as.character(coords_ptt$time*(n_time-1) + 1))
+coords_ptt$partition <- sprintf(bags:::ptt_format(nd),
+                                coords_ptt$row,
+                                coords_ptt$col,
+                                coords_ptt$time_d)
+ptts <- sort(unique(coords_ptt$partition))
+
+C_sv <- Ctilde(coords_ptt = coords_ptt,
+               z = matrix(rep("W", length(ptts)), ncol = 1),
+               params = list(sig_sq = 1, a = 3.5, c = 0.96, kappa = 0.8)) 
+
+time_label <- paste0("time = ", round(tgrid, 3))
+names(time_label) <- tgrid
+
+plt1 <- data.frame(rbind(coords, coords), cov = c(C_sv[1,], cov_mat_sv[1,]),
+                   type = rep(c("G-BAG", "Lagrangian"), each = n)) %>%
+  filter(type == "G-BAG") %>% 
+  ggplot() +
+  geom_contour_filled(aes(easting, northing, z = cov)) +
+  scale_fill_brewer(palette = "RdBu", direction = -1) +
+  # geom_raster(aes(easting, northing, fill = cov)) +
+  # scale_fill_distiller(palette = "YlOrRd", direction = 1) +
+  facet_wrap(~time, labeller = labeller(time = time_label), nrow = 3) +
+  labs(x = "", y = "", fill = "Covariance", title = "G-BAG")
+
+plt2 <- data.frame(rbind(coords, coords), cov = c(C_sv[1,], cov_mat_sv[1,]),
+                   type = rep(c("G-BAG", "Lagrangian"), each = n)) %>%
+  filter(type == "Lagrangian") %>% 
+  ggplot() +
+  geom_contour_filled(aes(easting, northing, z = cov)) +
+  scale_fill_brewer(palette = "RdBu", direction = -1) +
+  # geom_raster(aes(easting, northing, fill = cov)) +
+  # scale_fill_distiller(palette = "YlOrRd", direction = 1) +
+  facet_wrap(~time, labeller = labeller(time = time_label), nrow = 3) +
+  labs(x = "", y = "", fill = "Covariance", title = "Lagrangian")
+
+cor(c(cov_mat_sv), c(C_sv))
+plt3 <- data.frame(x = c(cov_mat_sv), y = c(C_sv)) %>%
+  ggplot() +
+  geom_point(aes(x,y), alpha = 0.1) +
+  geom_abline(slope = 1, intercept = 0, col = "red", 
+              linewidth = 1, linetype = "dashed") +
+  labs(x = "Lagrangian", y = "G-BAG") + 
+  coord_fixed()
+
+plt <- ggpubr::ggarrange(plt3, plt1, plt2, nrow = 1, common.legend = T,
+                         legend = "right", widths = c(0.8, 1, 1))
+# for (ext in extension) {
+#   ggsave(plot = plt, paste0(path, "plots/cov_Lagrangian", ext),
+#          width = 20, height = 6)
 # }
