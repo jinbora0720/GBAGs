@@ -103,8 +103,8 @@ tmaxdist <- max(dist(coords[,3], method = "manhattan"))
 la <- (1/0.12-1)/tmaxdist                                                       # correlation = 0.12 at the maximum distance
 ua <- (1/0.12-1)/(0.5*tmaxdist)                                                 # correlation = 0.12 at the half maximal distance
 spmaxdist <- max(dist(coords[,1:2]))
-lc <- -log(0.9)/(spmaxdist)                                                     # correlation = 0.8 at the maximum distance
-uc <- -log(0.9)/(0.2*spmaxdist)                                                 # correlation = 0.8 at one fifth of the maximum distance
+lc <- -log(0.9)/(spmaxdist)                                                     # correlation = 0.9 at the maximum distance
+uc <- -log(0.9)/(0.2*spmaxdist)                                                 # correlation = 0.9 at one fifth of the maximum distance
 
 # generate seed
 set.seed(123)
